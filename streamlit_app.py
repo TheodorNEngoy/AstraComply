@@ -6,11 +6,22 @@ import datetime
 import pdfkit
 from docx import Document
 import io
+import os
 
 # --- Load config & templates ----------------
 config = yaml.safe_load(open("config.yaml"))
 rulebook = yaml.safe_load(open("templates/risk_assessment.yml"))
 env = Environment(loader=FileSystemLoader("templates"))
+
+# --- Streamlit page setup & logo -------------
+st.set_page_config(page_title=config['company_name'], page_icon=config.get('logo_path', None))
+logo_path = config.get('logo_path', '')
+if logo_path and os.path.exists(logo_path):
+    st.image(logo_path, width=120)
+else:
+    st.header(config['company_name'])
+
+st.title(f"{config['company_name']} – EU AI Act Self‑Assessment")
 
 # --- Pydantic model -------------------------
 class Answer(BaseModel):
@@ -25,11 +36,9 @@ def assess(answers: list[Answer]) -> str:
             return "high-risk"
     return "minimal"
 
-
 def render_report_md(risk_tier: str, answers: list[Answer], timestamp: str) -> str:
     tpl = env.get_template("report.tpl.md")
     return tpl.render(risk_tier=risk_tier, answers=[a.dict() for a in answers], timestamp=timestamp)
-
 
 def render_report_docx(md: str) -> bytes:
     doc = Document()
@@ -39,17 +48,12 @@ def render_report_docx(md: str) -> bytes:
     doc.save(buf)
     return buf.getvalue()
 
-
 def render_report_pdf(md: str) -> bytes:
     # converts Markdown -> HTML -> PDF via pdfkit
     html = md.replace("\n", "<br />")
     return pdfkit.from_string(html, False)
 
 # --- Streamlit UI ----------------------------
-st.set_page_config(page_title=config['company_name'], page_icon=config['logo_path'])
-st.image(config['logo_path'], width=120)
-st.title(f"{config['company_name']} – EU AI Act Self‑Assessment")
-
 # collect answers
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 answers = []
@@ -64,16 +68,36 @@ if st.button("Assess risk tier"):
 if st.button("Generate report"):
     tier = assess(answers)
     md = render_report_md(tier, answers, timestamp)
-    st.download_button("Download Markdown report", data=md, file_name="astra_report.md", mime="text/markdown")
 
+    # Markdown download
+    st.download_button(
+        "Download Markdown report",
+        data=md,
+        file_name="astra_report.md",
+        mime="text/markdown"
+    )
+
+    # DOCX download
     docx_bytes = render_report_docx(md)
-    st.download_button("Download DOCX report", data=docx_bytes, file_name="astra_report.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    st.download_button(
+        "Download DOCX report",
+        data=docx_bytes,
+        file_name="astra_report.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
+    # PDF download (requires wkhtmltopdf)
     try:
         pdf_bytes = render_report_pdf(md)
-        st.download_button("Download PDF report", data=pdf_bytes, file_name="astra_report.pdf", mime="application/pdf")
+        st.download_button(
+            "Download PDF report",
+            data=pdf_bytes,
+            file_name="astra_report.pdf",
+            mime="application/pdf"
+        )
     except Exception:
         st.warning("PDF export requires wkhtmltopdf installed in your environment.")
 
+    # Preview the Markdown
     st.markdown("### Preview")
     st.markdown(md)
