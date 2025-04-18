@@ -1,0 +1,6 @@
+company_name: "AstraComply"
+logo_path: "static/logo.png"
+default_language: "en"
+supported_languages:
+  - en
+  - de

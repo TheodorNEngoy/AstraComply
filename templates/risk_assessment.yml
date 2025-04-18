@@ -1,11 +1,5 @@
-q1:
-  text: "Does your AI system process biometric data?"
+{% for i in range(1,31) %}
+q{{ i }}:
+  text: "Question {{ i }} placeholder – replace with AI Act article text."
   high_risk_values: ["yes"]
-
-q2:
-  text: "Is your system intended for remote biometric identification?"
-  high_risk_values: ["yes"]
-
-q3:
-  text: "Do you use personal data for profiling?"
-  high_risk_values: ["yes"]
+{% endfor %}

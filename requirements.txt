@@ -2,3 +2,5 @@ streamlit
 pydantic
 PyYAML
 Jinja2
+pdfkit
+python-docx
