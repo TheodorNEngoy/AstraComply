@@ -2,6 +2,7 @@ import streamlit as st
 from pydantic import BaseModel
 import yaml
 from jinja2 import Environment, FileSystemLoader
+import datetime
 
 # --- Load rulebook & templates ----------------
 rulebook = yaml.safe_load(open("templates/risk_assessment.yml"))
@@ -17,15 +18,20 @@ def assess(answers: list[Answer]) -> str:
     for ans in answers:
         rules = rulebook.get(ans.question_id, {})
         if ans.answer.lower() in [v.lower() for v in rules.get("high_risk_values", [])]:
-            return "high‑risk"
+            return "high-risk"
     return "minimal"
 
 def render_report(risk_tier: str, answers: list[Answer]) -> str:
     tpl = env.get_template("report.tpl.md")
-    return tpl.render(risk_tier=risk_tier, answers=[a.dict() for a in answers])
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return tpl.render(
+        risk_tier=risk_tier,
+        answers=[a.dict() for a in answers],
+        timestamp=timestamp
+    )
 
 # --- Streamlit UI ----------------------------
-st.title("AstraComply – EU AI Act Self‑Assessment")
+st.title("AstraComply – EU AI Act Self‑Assessment")
 
 # Load questions from the rulebook
 answers = []
