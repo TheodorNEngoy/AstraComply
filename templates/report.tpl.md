@@ -1,4 +1,3 @@
-<!-- templates/report.tpl.md -->
 # AI Act Self‑Assessment Report
 
 **Company:** {{ company_name }}  
