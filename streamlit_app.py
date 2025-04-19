@@ -1,3 +1,4 @@
+# streamlit_app.py
 import streamlit as st
 from pydantic import BaseModel
 import yaml
@@ -38,7 +39,12 @@ def assess(answers: list[Answer]) -> str:
 
 def render_report_md(risk_tier: str, answers: list[Answer], timestamp: str) -> str:
     tpl = env.get_template("report.tpl.md")
-    return tpl.render(risk_tier=risk_tier, answers=[a.dict() for a in answers], timestamp=timestamp)
+    return tpl.render(
+        company_name=config['company_name'],
+        risk_tier=risk_tier,
+        answers=[a.dict() for a in answers],
+        timestamp=timestamp,
+    )
 
 def render_report_docx(md: str) -> bytes:
     doc = Document()
@@ -49,12 +55,10 @@ def render_report_docx(md: str) -> bytes:
     return buf.getvalue()
 
 def render_report_pdf(md: str) -> bytes:
-    # converts Markdown -> HTML -> PDF via pdfkit
     html = md.replace("\n", "<br />")
     return pdfkit.from_string(html, False)
 
 # --- Streamlit UI ----------------------------
-# collect answers
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 answers = []
 for qid, meta in rulebook.items():
@@ -69,35 +73,20 @@ if st.button("Generate report"):
     tier = assess(answers)
     md = render_report_md(tier, answers, timestamp)
 
-    # Markdown download
-    st.download_button(
-        "Download Markdown report",
-        data=md,
-        file_name="astra_report.md",
-        mime="text/markdown"
-    )
+    st.download_button("Download Markdown report", data=md,
+                       file_name="astra_report.md", mime="text/markdown")
 
-    # DOCX download
     docx_bytes = render_report_docx(md)
-    st.download_button(
-        "Download DOCX report",
-        data=docx_bytes,
-        file_name="astra_report.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+    st.download_button("Download DOCX report", data=docx_bytes,
+                       file_name="astra_report.docx",
+                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
-    # PDF download (requires wkhtmltopdf)
     try:
         pdf_bytes = render_report_pdf(md)
-        st.download_button(
-            "Download PDF report",
-            data=pdf_bytes,
-            file_name="astra_report.pdf",
-            mime="application/pdf"
-        )
+        st.download_button("Download PDF report", data=pdf_bytes,
+                           file_name="astra_report.pdf", mime="application/pdf")
     except Exception:
         st.warning("PDF export requires wkhtmltopdf installed in your environment.")
 
-    # Preview the Markdown
     st.markdown("### Preview")
     st.markdown(md)
